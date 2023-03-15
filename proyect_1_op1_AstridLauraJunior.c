@@ -20,6 +20,7 @@
 #include "standard_lib.h"
 
 int main(int argc, char *argv[]){
+	// Verificacion de argumentos de entrada.
 	if(argc > 1 && argc < 5){ 
 		open_files(argc, argv);
 		initial_structs();
@@ -30,13 +31,15 @@ int main(int argc, char *argv[]){
 		ReadCacCharge();
 		ReadCacService();
 		
+
+
 		// Checks de primera hora y ultima hora.
 		printf("first : %d\n", first_arrival);
 		printf("last : %d\n", last_arrival);
-		
+
 		// Check de cargas.
 		printf("\n CODE       NAMES         Recorr   6   7   8   9   10  11  12  13\n");
-		FOR1(r, rows_c){
+		FOR(r, 1, rows_c){
 			struct charge aux = total_cha[r];
 			if(aux.empty == 0) break;
 			printf("%4s", aux.code);
@@ -47,10 +50,10 @@ int main(int argc, char *argv[]){
 			}
 			printf("\n");
 		}
-		
+
 		// Check de servicios.
 		printf("\n CODE       LEAVINGS       \n");
-		FOR1(r, rows_s){
+		FOR(r, 1, rows_s){
 			int c = 0;
 			struct services aux = total_ser[r][c++];
 			if(aux.empty == 0) continue;
@@ -83,7 +86,7 @@ void ReadCacCharge(){
 	struct charge *aux;
 
 	// Iteramos por las filas del archivo.
-	FOR0(r, rows){
+	FOR(r, 0, rows){
 		aux = &total_cha[r];
 		if(fgets(buf, sizeof(buf), charge_file)){
 			aux->empty = 1;
@@ -133,7 +136,7 @@ void ReadCacService(){
 	struct services aux;
 	
 	// Iteramos por las filas del archivo.
-	FOR1(r, rows){
+	FOR(r, 1, rows){
 		c = 0;
 		if(fgets(buf, sizeof(buf), services_file)){
 			ptr = strtok(buf, " ");
@@ -159,23 +162,24 @@ void ReadCacService(){
 }
 
 int num_of_lines(FILE *file){
-	int rows;
+	int rows = 0;
 	char buf[BUFFER_SIZE];
 	fseek(file, 0, SEEK_SET);
 	while(fgets(buf, BUFFER_SIZE, file))
 		rows++;
 	fseek(file, 0, SEEK_SET);
+	printf("size: %d\n", rows);
 	return rows;
 }
 
 void initial_structs(){
 	// Init de "total_cha" con identificador vacio.
-	FOR0(i, n_routes)
+	FOR(i, 0, n_routes)
 		total_cha[i].empty = 0;
 	
 	// Init de "total_set" con identificador vacio.
-	FOR0(r, n_routes){
-		FOR0(c, max_bus)
+	FOR(r, 0, n_routes){
+		FOR(c, 0, max_bus)
 			total_ser[r][c].empty = 0;
 	}
 }
@@ -218,9 +222,3 @@ void ErrorArgument(int argc, char *argv[]){
 		printf("%s ", argv[k]);
 	printf("\nCorrect: %s servicio.txt carga.csv\n", argv[0]);
 }
-
-
-
-
-
-

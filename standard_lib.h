@@ -7,9 +7,8 @@
 #include <time.h>
 #include <unistd.h>
 
-// Directivas Fors.
-#define FOR0(i, n) for(int i = 0; i < n; i++)
-#define FOR1(i, n) for(int i = 1; i-1 < n; i++)
+// Directivas For.
+#define FOR(i, x, n) for(int i = x; i-x < n; i++)
 
 // Macros True and False.
 #ifndef TRUE
@@ -19,22 +18,30 @@
 	#define FALSE !TRUE
 #endif
 
-#define BUFFER_SIZE 1024
-#define n_routes 50
-#define max_hour 24
-#define max_bus 200
+// Buffers y Constantes Macros.
+#define BUFFER_SIZE 1024 // Buffer para lectura de filas en archivo.
+#define n_routes 50      // Numero maximo de rutas en la universidad.
+#define max_hour 24      // Maximo de horas en un dia.
+#define max_bus 200      // Maximo de Buses en una ruta.
 
-float Time = 0.25;
-int first_arrival = 0;
-int last_arrival = 23;
-int rows_file;
-FILE *charge_file, *services_file;
+float Time = 0.25;     // Tiempo default para la simulacion.
+int first_arrival = 0; // Hora Inicial de llegada de estudiantes.
+int last_arrival = 23; // Hora final de llegada de etudiantes.
+FILE 	*charge_file,    // Variable para archivo de carga
+			*services_file;  // Variable para archivo de servicio.
 
+// Estructura para guardar los tiempos usados en simulacion.
 struct time_b{
 	int hour;
 	int min;
 };
 
+//  Estructura para guardar la informacion del archivo de carga.
+//	- empty: Indica si la estructura esta en uso.
+//	- queue_per: Cola de personas en una parada.
+//	- code: Codigo de la parada.
+//	- name: Nombre de la parada.
+//	- min_travel: Tiempo de viaje del bus.
 struct charge{
 	int empty;
 	int queue_per[max_hour];
@@ -43,6 +50,11 @@ struct charge{
 	int min_travel;
 };
 
+// Estructura para guardar la informacion del archivo de servicio.
+//	- empty:Indica si la estructura esta en uso.
+//	- code: Codigo de la parada.
+//	- leaveing: Hora de salida del bus desde la universidad.
+//	- c_capacity: Capacidad de carga del bus. 
 struct services{
 	int empty;
 	char code[4];
@@ -50,7 +62,15 @@ struct services{
 	int c_capacity;
 };
 
+// Arreglo de unidimensional de estructuras de chargas. Permite 
+// indexar por ruta leida en archivo de carga. Cada indice contiene
+// la informacion por ruta, codigo, la cola de persona y toda informacion
+// de la parada.
 struct charge total_cha[n_routes];
+
+// Arreglo bidimensional de estructuras servicios. Permite indexar
+// por fila cada ruta/parada los los autobuses asignados para dicha
+// parada. Cada columna contiene la informacion de un bus respectivo.
 struct services total_ser[n_routes][max_bus];
 
 // Funcion encargada de obtener/extraer la informacion del 
@@ -79,4 +99,3 @@ void open_files(int, char**);
 // Funcion encargada de mostrar errores de llamado al programa.
 // Cuando no se ingresan los archivos o la cantidad correcta.
 void ErrorArgument(int, char**);
-
