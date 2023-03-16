@@ -6,9 +6,10 @@
  * 				 	->  PROYECTO 1 ENERO - MARZO 2023   <-
  *                     Transporte USB
  * Estudiantes:
- * Astrid Alvarado 18-10938
- * Laura Parilli   17-10778
- * Junior Lara     17-10303
+ * Astrid Alvarado  18-10938
+ * Laura Parilli    17-10778
+ * Jhonaiker Blanco 18-10784
+ * Junior Lara      17-10303
  *
  * -> Idea General:
  *
@@ -25,18 +26,23 @@ int main(int argc, char *argv[]){
 		open_files(argc, argv);
 		initial_structs();
 		
-		int rows_c = num_of_lines(charge_file);
-		int rows_s = num_of_lines(services_file);
+		//int rows_c = num_of_lines(charge_file);
+		//int rows_s = num_of_lines(services_file);
 		
 		ReadCacCharge();
 		ReadCacService();
-		
-
+			
+		printf("Hora inicial simulada: ");
+		tracker_hour(Hour_Simul);
+		FOR(i, 0, 10){
+			tracker_hour(++Hour_Simul);
+		}
 
 		// Checks de primera hora y ultima hora.
 		printf("first : %d\n", first_arrival);
 		printf("last : %d\n", last_arrival);
-
+		
+		/*
 		// Check de cargas.
 		printf("\n CODE       NAMES         Recorr   6   7   8   9   10  11  12  13\n");
 		FOR(r, 1, rows_c){
@@ -65,7 +71,7 @@ int main(int argc, char *argv[]){
 			}
 			printf("\n");
 		}
-
+		*/
 		return EXIT_SUCCESS;
 	}
 	ErrorArgument(argc, argv);
@@ -76,10 +82,20 @@ int main(int argc, char *argv[]){
 /*   Definiciones y encabezados de funciones en "standard_lib.h"   */
 /*******************************************************************/
 
-
+void tracker_hour(int hour){
+	int h = hour/60;
+	int m = hour % 60;
+	char format[6];
+	time_t now = time(NULL);
+	struct tm* t_a = localtime(&now);
+	t_a->tm_hour = h;
+	t_a->tm_min = m;
+	strftime(format, 6, "%H:%M", t_a);
+	printf("Simulation Time: %s\n", format);
+}
 
 void ReadCacCharge(){
-	int rows = num_of_lines(charge_file);
+	int rows = num_of_lines(charge_file); 
 	int c, hours, mins;
 	char buf[BUFFER_SIZE];
 	char *ptr;
@@ -105,6 +121,9 @@ void ReadCacCharge(){
 					ptr = strtok(NULL, ",");
 
 				}	else {
+					// Por cada parada leida aumentamos el numero de procesos.
+					num_of_process++;
+
 					strncpy(aux->code, ptr, 4);
 					ptr = strtok(NULL, ",");
 
@@ -149,6 +168,10 @@ void ReadCacService(){
 				total_ser[r][c].empty = 1;
 				strncpy(total_ser[r][c].code, cod, 4);
 				sscanf(ptr, " %d:%d(%d)", &hours, &mins, &cap);
+				
+				// Verificamos la hora inicial simulada.
+				Hour_Simul = min(hours*60 + mins, Hour_Simul);
+
 				total_ser[r][c].leaveing.hour = hours;
 				total_ser[r][c].leaveing.min = mins;
 				total_ser[r][c].c_capacity = cap;
@@ -157,6 +180,8 @@ void ReadCacService(){
 			}
 		}
 	}
+	// Iniciamos 5 minutos antes.
+	Hour_Simul -= 5;
 	// Cerrar el archivo.
 	fclose(services_file);
 }
@@ -168,7 +193,6 @@ int num_of_lines(FILE *file){
 	while(fgets(buf, BUFFER_SIZE, file))
 		rows++;
 	fseek(file, 0, SEEK_SET);
-	printf("size: %d\n", rows);
 	return rows;
 }
 
@@ -200,14 +224,14 @@ void open_files(int argc, char *argv[]){
 		charge_file = fopen(argv[2], "r");
 		if(charge_file == NULL){
 			charge_file = fopen("carga.csv", "r");
-			sscanf(argv[2], "%f", &Time);
+			sscanf(argv[2], "%f", &Min_Simul);
 		}
 		if(charge_file == NULL || services_file == NULL)
 			perror("Error: Fail to open files.");
 
 	// Se ingreso ambos archivos mas el tiempo a simular.
 	} else {
-		sscanf(argv[3], "%f", &Time);
+		sscanf(argv[3], "%f", &Min_Simul);
 		services_file = fopen(argv[1], "r");
 		charge_file = fopen(argv[2], "r");
 		if(charge_file == NULL || services_file == NULL)

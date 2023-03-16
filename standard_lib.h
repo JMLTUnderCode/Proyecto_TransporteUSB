@@ -18,23 +18,32 @@
 	#define FALSE !TRUE
 #endif
 
+// Definicion de funcion minimum para dos valores x e y.
+#define min(x,y) \
+	({ typeof (x) _x = (x); \
+			typeof (y) _y = (y); \
+			_x < _y ? _x : _y; })
+
 // Buffers y Constantes Macros.
 #define BUFFER_SIZE 1024 // Buffer para lectura de filas en archivo.
 #define n_routes 50      // Numero maximo de rutas en la universidad.
 #define max_hour 24      // Maximo de horas en un dia.
 #define max_bus 200      // Maximo de Buses en una ruta.
 
-float Time = 0.25;     // Tiempo default para la simulacion.
-int first_arrival = 0; // Hora Inicial de llegada de estudiantes.
-int last_arrival = 23; // Hora final de llegada de etudiantes.
-FILE 	*charge_file,    // Variable para archivo de carga
-			*services_file;  // Variable para archivo de servicio.
+int first_arrival = 0;   // Hora Inicial de llegada de estudiantes.
+int last_arrival = 23;   // Hora final de llegada de etudiantes.
+int num_of_process = 0;  // Numero dep rocesos(Paradas) a crear.
+FILE 	*charge_file,      // Variable para archivo de carga
+			*services_file;    // Variable para archivo de servicio.
 
 // Estructura para guardar los tiempos usados en simulacion.
 struct time_b{
 	int hour;
 	int min;
 };
+
+int Hour_Simul = 1440;  // Hora degault para la simulacion.
+float Min_Simul = 0.25; // Minuto default para la simulacion.
 
 //  Estructura para guardar la informacion del archivo de carga.
 //	- empty: Indica si la estructura esta en uso.
@@ -72,6 +81,12 @@ struct charge total_cha[n_routes];
 // por fila cada ruta/parada los los autobuses asignados para dicha
 // parada. Cada columna contiene la informacion de un bus respectivo.
 struct services total_ser[n_routes][max_bus];
+
+/***********************************************************************/
+
+// Funcion encargada de mostrar en consola la hora simulada dado un
+// numero entero que representa la cantidad de minutos.
+void tracker_hour(int);
 
 // Funcion encargada de obtener/extraer la informacion del 
 // archivo "Caracteristica de Carta" a la estructura 
