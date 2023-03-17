@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/wait.h>
 #include <sys/types.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -18,11 +19,15 @@
 	#define FALSE !TRUE
 #endif
 
-// Definicion de funcion minimum para dos valores x e y.
+// Definicion de funcion min/max para dos valores x e y.
 #define min(x,y) \
 	({ typeof (x) _x = (x); \
 			typeof (y) _y = (y); \
 			_x < _y ? _x : _y; })
+#define max(x,y) \
+	({ typeof (x) _x = (x); \
+			typeof (y) _y = (y); \
+			_x > _y ? _x : _y; })
 
 // Buffers y Constantes Macros.
 #define BUFFER_SIZE 1024 // Buffer para lectura de filas en archivo.
@@ -30,11 +35,12 @@
 #define max_hour 24      // Maximo de horas en un dia.
 #define max_bus 200      // Maximo de Buses en una ruta.
 
+FILE 	*charge_file,      // Variable para archivo de carga
+			*services_file;    // Variable para archivo de servicio.
 int first_arrival = 0;   // Hora Inicial de llegada de estudiantes.
 int last_arrival = 23;   // Hora final de llegada de etudiantes.
 int num_of_process = 0;  // Numero dep rocesos(Paradas) a crear.
-FILE 	*charge_file,      // Variable para archivo de carga
-			*services_file;    // Variable para archivo de servicio.
+
 
 // Estructura para guardar los tiempos usados en simulacion.
 struct time_b{
@@ -43,6 +49,7 @@ struct time_b{
 };
 
 int Hour_Simul = 1440;  // Hora degault para la simulacion.
+int Hour_Final = 0; 		// Hora final de la simulacion.
 float Min_Simul = 0.25; // Minuto default para la simulacion.
 
 //  Estructura para guardar la informacion del archivo de carga.
@@ -83,6 +90,10 @@ struct charge total_cha[n_routes];
 struct services total_ser[n_routes][max_bus];
 
 /***********************************************************************/
+
+// Funcion descrita para el trabajo de un proceso hijo creado por 
+// fork. 
+void child_funtion(int, int [][2]);
 
 // Funcion encargada de mostrar en consola la hora simulada dado un
 // numero entero que representa la cantidad de minutos.

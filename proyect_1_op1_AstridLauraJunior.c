@@ -31,47 +31,72 @@ int main(int argc, char *argv[]){
 		
 		ReadCacCharge();
 		ReadCacService();
+		
+		int child_pids[num_of_process+1];
+		int PROCESS_ID = 0;
+		int files_desc[num_of_process+1][2];
+		
+		// Apertura de todos los pipes a usar.
+		FOR(n, 1, num_of_process){
+			pipe(files_desc[n]);
+		}
+		
+		// Creacion de los procesos. En caso de ser proceso hijo hacer un break.
+		// No se quiere crear un arbol de procesos sino un abanico. Por tanto
+		// mientras sea el proceso padre entonces el for sigue.
+		FOR(n, 1, num_of_process){
+			PROCESS_ID++;
+			child_pids[PROCESS_ID] = fork();
+			if(!child_pids[PROCESS_ID]) break;
+		}
+		
+		// Procesos hijo va a su funcion con su respectivo ID.
+		if(!child_pids[PROCESS_ID]){
+			child_funtion(PROCESS_ID, files_desc);
+
+		} else { // Proceso padre.
+			close(files_desc[1][0]); 	// Cerramos primer pipe de lectura.
+			char buf[10];
+			int cnt = 0;
+
+			while(TRUE){
+				// funcion aumentar time//
+				sprintf(buf, "%d", Hour_Simul);
+				if(Hour_Simul == Hour_Final) {
+					// Escribir -1 en pipe es señal de terminar procesos.
+					write(files_desc[1][1], "-1", 3); break;
+				} else {
+					write(files_desc[1][1], buf, 10);
+				}
+				sleep(2);
+				
+				// Aumento de tiempo para probar el codigo.
+				cnt++;
+				if(cnt == 2) {
+					Hour_Simul = Hour_Final;
+				}else{
+					Hour_Simul++;
+				}
+			}
+
+			close(files_desc[1][1]);
 			
-		printf("Hora inicial simulada: ");
-		tracker_hour(Hour_Simul);
-		FOR(i, 0, 10){
-			tracker_hour(++Hour_Simul);
+
+			// Wait de cada proceso.
+			int status;
+			FOR(n, 1, num_of_process){
+				wait(&status);
+				if(!WEXITSTATUS(status))
+					printf("Hijo %d ha terminadoo.\n", PROCESS_ID);
+				else
+					printf("Hijo %d NO ha terminado.\n", PROCESS_ID);
+			}
 		}
 
 		// Checks de primera hora y ultima hora.
 		printf("first : %d\n", first_arrival);
 		printf("last : %d\n", last_arrival);
 		
-		/*
-		// Check de cargas.
-		printf("\n CODE       NAMES         Recorr   6   7   8   9   10  11  12  13\n");
-		FOR(r, 1, rows_c){
-			struct charge aux = total_cha[r];
-			if(aux.empty == 0) break;
-			printf("%4s", aux.code);
-			printf("%20s", aux.name);
-			printf("%4d mins", aux.min_travel);
-			for(int k = first_arrival; k-1 < last_arrival; k++){
-				printf("%4d", aux.queue_per[k]);
-			}
-			printf("\n");
-		}
-
-		// Check de servicios.
-		printf("\n CODE       LEAVINGS       \n");
-		FOR(r, 1, rows_s){
-			int c = 0;
-			struct services aux = total_ser[r][c++];
-			if(aux.empty == 0) continue;
-
-			printf("%4s", aux.code);
-			while(aux.empty == 1){
-				printf(" %d:%d(%d) ",aux.leaveing.hour, aux.leaveing.min, aux.c_capacity);
-				aux = total_ser[r][c++];
-			}
-			printf("\n");
-		}
-		*/
 		return EXIT_SUCCESS;
 	}
 	ErrorArgument(argc, argv);
@@ -81,6 +106,46 @@ int main(int argc, char *argv[]){
 /*******************************************************************/
 /*   Definiciones y encabezados de funciones en "standard_lib.h"   */
 /*******************************************************************/
+
+void child_funtion(int ID, int pipes[][2]){
+	
+	if(ID == num_of_process){ // Ultimo hijo.
+		close(pipes[ID][1]); // Cerramos el file de escritura.
+		int minutos = 0;
+		char buf[10];
+				
+		while(TRUE){
+			read(pipes[ID][0], buf, 10);
+			printf("->Soy el proceso hijo %d PID: %d\n", ID, getpid());
+			sscanf(buf, "%d", &minutos);
+			if(minutos == -1) break;
+			printf("Leido por pipe: %d\n\n", minutos);
+		}
+
+		close(pipes[ID][0]);
+			
+	} else {
+		close(pipes[ID][1]);   // Cerramos escritura pipe izquierdo.
+		close(pipes[ID+1][0]); // Cerramos lectura pipe derecho.
+		int minutos = 0;
+		char buf[10];
+				
+		while(TRUE){
+			read(pipes[ID][0], buf, 10);
+			printf("->Soy el proceso hijo %d PID: %d\n", ID, getpid());
+			sscanf(buf, "%d", &minutos);
+			if(minutos == -1) break;
+			printf("Leido por pipe: %d\n\n", minutos);
+			
+			write(pipes[ID+1][1], buf, 10);
+		}
+
+		close(pipes[ID][0]);
+		close(pipes[ID+1][0]);
+	}
+	exit(0);
+}
+
 
 void tracker_hour(int hour){
 	int h = hour/60;
@@ -142,8 +207,7 @@ void ReadCacCharge(){
 			}
 		}
 	}
-	// Cerrar el archivo.
-	fclose(charge_file);
+	fclose(charge_file); // Cerrar el archivo.
 }
 
 void ReadCacService(){
@@ -153,37 +217,49 @@ void ReadCacService(){
 	char cod[4];
 	char *ptr;
 	struct services aux;
-	
+	int f;
+
 	// Iteramos por las filas del archivo.
 	FOR(r, 1, rows){
-		c = 0;
+		c = 0; f = 0;
 		if(fgets(buf, sizeof(buf), services_file)){
 			ptr = strtok(buf, " ");
 
 			strncpy(cod, ptr, 4);
 			ptr = strtok(NULL, " ");
 			
+			// Verificamos que coincidan los CODES.
+			if(strcmp(total_cha[r].code, cod)){
+				// Buscamos la fila correspondiente al CODE de carga.
+				FOR(x, 1, num_of_process){
+					if(strcmp(total_cha[x].code, cod)) continue;
+					f = x; break;	
+				}	
+			} else { f = r; }
+			
+			// Verificar si la estructura esta vacia.
+			if(!total_cha[f].empty) continue;
+
 			// Iteramos por las columnas.
 			while( ptr != NULL){
-				total_ser[r][c].empty = 1;
-				strncpy(total_ser[r][c].code, cod, 4);
+				total_ser[f][c].empty = 1;
+				strncpy(total_ser[f][c].code, cod, 4);
 				sscanf(ptr, " %d:%d(%d)", &hours, &mins, &cap);
 				
 				// Verificamos la hora inicial simulada.
 				Hour_Simul = min(hours*60 + mins, Hour_Simul);
+				Hour_Final = max(hours*60 + mins, Hour_Final);
 
-				total_ser[r][c].leaveing.hour = hours;
-				total_ser[r][c].leaveing.min = mins;
-				total_ser[r][c].c_capacity = cap;
+				total_ser[f][c].leaveing.hour = hours;
+				total_ser[f][c].leaveing.min = mins;
+				total_ser[f][c].c_capacity = cap;
 				ptr = strtok(NULL, " ");
 				c++;
 			}
 		}
 	}
-	// Iniciamos 5 minutos antes.
-	Hour_Simul -= 5;
-	// Cerrar el archivo.
-	fclose(services_file);
+	Hour_Simul -= 5; // Iniciamos 5 minutos antes.
+	fclose(services_file); // Cerramos el archivo.
 }
 
 int num_of_lines(FILE *file){
