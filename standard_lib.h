@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include <semaphore.h>
-#include <time.h>
+#include <sys/time.h>
 #include <unistd.h>
 
 // Directivas For.
@@ -40,6 +40,10 @@ FILE 	*charge_file,      // Variable para archivo de carga
 int first_arrival = 0;   // Hora Inicial de llegada de estudiantes.
 int last_arrival = 23;   // Hora final de llegada de etudiantes.
 int num_of_process = 0;  // Numero dep rocesos(Paradas) a crear.
+int Hour_Simul = 1440;   // Hora degault para la simulacion.
+int Hour_Final = 0;      // Hora final de la simulacion.
+float Min_Simul = 0.25;  // Minuto default para la simulacion.
+int PROCESS_ID = 0;      // Identificador de los procesos creados.
 
 
 // Estructura para guardar los tiempos usados en simulacion.
@@ -48,9 +52,6 @@ struct time_b{
 	int min;
 };
 
-int Hour_Simul = 1440;  // Hora degault para la simulacion.
-int Hour_Final = 0; 		// Hora final de la simulacion.
-float Min_Simul = 0.25; // Minuto default para la simulacion.
 
 //  Estructura para guardar la informacion del archivo de carga.
 //	- empty: Indica si la estructura esta en uso.

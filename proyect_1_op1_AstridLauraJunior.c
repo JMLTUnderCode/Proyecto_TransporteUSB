@@ -13,8 +13,6 @@
  *
  * -> Idea General:
  *
- * Error en servicio de transporte para año 2007, falta el transporte HDP
- * Hoyo de la puerta.
  *
 */
 
@@ -23,80 +21,81 @@
 int main(int argc, char *argv[]){
 	// Verificacion de argumentos de entrada.
 	if(argc > 1 && argc < 5){ 
-		open_files(argc, argv);
-		initial_structs();
+		open_files(argc, argv);    // Apertura de archivos.
+		initial_structs();         // Inicializacion de estructuras.
 		
-		//int rows_c = num_of_lines(charge_file);
-		//int rows_s = num_of_lines(services_file);
-		
-		ReadCacCharge();
-		ReadCacService();
-		
-		int child_pids[num_of_process+1];
-		int PROCESS_ID = 0;
-		int files_desc[num_of_process+1][2];
+		ReadCacCharge();           // Lectura del archivo de carga.
+		ReadCacService();          // Lectura del archivo de servicios.
+	
+		// Arreglo de PID de cada proceso creado.
+		int child_pids[num_of_process+2];
+
+		// Arreglo de files descriptos o bien sea PIPES.
+		int files_desc[num_of_process+2][2];
 		
 		// Apertura de todos los pipes a usar.
-		FOR(n, 1, num_of_process){
-			pipe(files_desc[n]);
-		}
-		
-		// Creacion de los procesos. En caso de ser proceso hijo hacer un break.
-		// No se quiere crear un arbol de procesos sino un abanico. Por tanto
-		// mientras sea el proceso padre entonces el for sigue.
+		FOR(n, 1, num_of_process+2) pipe(files_desc[n]);
+	
+		// Creacion de procesos hijos.
 		FOR(n, 1, num_of_process){
 			PROCESS_ID++;
 			child_pids[PROCESS_ID] = fork();
 			if(!child_pids[PROCESS_ID]) break;
 		}
 		
-		// Procesos hijo va a su funcion con su respectivo ID.
-		if(!child_pids[PROCESS_ID]){
+		if(!child_pids[PROCESS_ID]){ // PROCESOS HIJOS.
 			child_funtion(PROCESS_ID, files_desc);
 
-		} else { // Proceso padre.
+		} else { // PROCESO PADRE.
 			close(files_desc[1][0]); 	// Cerramos primer pipe de lectura.
-			char buf[10];
+			close(files_desc[PROCESS_ID+1][1]); // Cerramos el ultimo pipe escritura.
+			char buf[10], buf1[10];
+			int minutes = 0;
+			struct timeval tm_begin, tm_end;
+			long t_ms = 1e6*Min_Simul;
+			long curr_tms = 0;
+			long diff = 0;
+			long scs = 0;
+			
 			int cnt = 0;
-
+			
 			while(TRUE){
-				// funcion aumentar time//
 				sprintf(buf, "%d", Hour_Simul);
 				if(Hour_Simul == Hour_Final) {
-					// Escribir -1 en pipe es señal de terminar procesos.
-					write(files_desc[1][1], "-1", 3); break;
+					write(files_desc[1][1], "-1", 3);
 				} else {
+					gettimeofday(&tm_begin, NULL);
 					write(files_desc[1][1], buf, 10);
 				}
-				sleep(2);
+				read(files_desc[PROCESS_ID+1][0], buf1, 10);
+				gettimeofday(&tm_end, NULL);
+				sscanf(buf1, "%d", &minutes);
+				if(minutes == -1) break;
+				scs = (tm_end.tv_sec - tm_begin.tv_sec);
+				curr_tms = (scs*1e6)+tm_end.tv_usec-tm_begin.tv_usec;
+				
+				if(curr_tms < t_ms){
+					t_ms -= curr_tms;
+					gettimeofday(&tm_begin, NULL);
+					usleep(t_ms);
+					Hour_Simul++;
+					gettimeofday(&tm_end, NULL);
+					scs = (tm_end.tv_sec - tm_begin.tv_sec);
+					curr_tms = (scs*1e6)+tm_end.tv_usec-tm_begin.tv_usec;
+					
+					diff = curr_tms - t_ms;
+					t_ms = 1e6*Min_Simul;
+					if(diff < t_ms)	t_ms = t_ms - diff;
+				} else Hour_Simul++;
 				
 				// Aumento de tiempo para probar el codigo.
 				cnt++;
-				if(cnt == 2) {
-					Hour_Simul = Hour_Final;
-				}else{
-					Hour_Simul++;
-				}
+				if(cnt == 3) Hour_Simul = Hour_Final;
 			}
 
 			close(files_desc[1][1]);
-			
-
-			// Wait de cada proceso.
-			int status;
-			FOR(n, 1, num_of_process){
-				wait(&status);
-				if(!WEXITSTATUS(status))
-					printf("Hijo %d ha terminadoo.\n", PROCESS_ID);
-				else
-					printf("Hijo %d NO ha terminado.\n", PROCESS_ID);
-			}
+			close(files_desc[PROCESS_ID+1][0]); // Cerramos el ultimo pipe escritura.
 		}
-
-		// Checks de primera hora y ultima hora.
-		printf("first : %d\n", first_arrival);
-		printf("last : %d\n", last_arrival);
-		
 		return EXIT_SUCCESS;
 	}
 	ErrorArgument(argc, argv);
@@ -108,41 +107,22 @@ int main(int argc, char *argv[]){
 /*******************************************************************/
 
 void child_funtion(int ID, int pipes[][2]){
-	
-	if(ID == num_of_process){ // Ultimo hijo.
-		close(pipes[ID][1]); // Cerramos el file de escritura.
-		int minutos = 0;
-		char buf[10];
-				
-		while(TRUE){
-			read(pipes[ID][0], buf, 10);
-			printf("->Soy el proceso hijo %d PID: %d\n", ID, getpid());
-			sscanf(buf, "%d", &minutos);
-			if(minutos == -1) break;
-			printf("Leido por pipe: %d\n\n", minutos);
-		}
-
-		close(pipes[ID][0]);
+	close(pipes[ID][1]);   // Cerramos escritura pipe izquierdo.
+	close(pipes[ID+1][0]); // Cerramos lectura pipe derecho.
+	int minutos = 0;
+	char buf[10];
 			
-	} else {
-		close(pipes[ID][1]);   // Cerramos escritura pipe izquierdo.
-		close(pipes[ID+1][0]); // Cerramos lectura pipe derecho.
-		int minutos = 0;
-		char buf[10];
-				
-		while(TRUE){
-			read(pipes[ID][0], buf, 10);
-			printf("->Soy el proceso hijo %d PID: %d\n", ID, getpid());
-			sscanf(buf, "%d", &minutos);
-			if(minutos == -1) break;
-			printf("Leido por pipe: %d\n\n", minutos);
-			
-			write(pipes[ID+1][1], buf, 10);
-		}
+	while(TRUE){
+		read(pipes[ID][0], buf, 10);
+		sscanf(buf, "%d", &minutos);
 
-		close(pipes[ID][0]);
-		close(pipes[ID+1][0]);
+		// HILOS A EJECUTAR//
+
+		write(pipes[ID+1][1], buf, 10);
+		if(minutos == -1) break;
 	}
+	close(pipes[ID][0]);
+	close(pipes[ID+1][0]);
 	exit(0);
 }
 
@@ -248,7 +228,8 @@ void ReadCacService(){
 				
 				// Verificamos la hora inicial simulada.
 				Hour_Simul = min(hours*60 + mins, Hour_Simul);
-				Hour_Final = max(hours*60 + mins, Hour_Final);
+				Hour_Final = max(hours*60 + mins + 2*total_cha[f].min_travel+10, Hour_Final);
+
 
 				total_ser[f][c].leaveing.hour = hours;
 				total_ser[f][c].leaveing.min = mins;
@@ -258,6 +239,7 @@ void ReadCacService(){
 			}
 		}
 	}
+
 	Hour_Simul -= 5; // Iniciamos 5 minutos antes.
 	fclose(services_file); // Cerramos el archivo.
 }
