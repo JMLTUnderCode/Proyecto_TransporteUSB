@@ -60,6 +60,7 @@ int main(int argc, char *argv[]){
 			int cnt = 0;
 			
 			while(TRUE){
+				tracker_hour(Hour_Simul);
 				sprintf(buf, "%d", Hour_Simul);
 				if(Hour_Simul == Hour_Final) {
 					write(files_desc[1][1], "-1", 3);
@@ -109,17 +110,17 @@ int main(int argc, char *argv[]){
 void child_funtion(int ID, int pipes[][2]){
 	close(pipes[ID][1]);   // Cerramos escritura pipe izquierdo.
 	close(pipes[ID+1][0]); // Cerramos lectura pipe derecho.
-	int minutos = 0;
+	int minutes = 0;
 	char buf[10];
 			
 	while(TRUE){
 		read(pipes[ID][0], buf, 10);
-		sscanf(buf, "%d", &minutos);
+		sscanf(buf, "%d", &minutes);
 
 		// HILOS A EJECUTAR//
 
 		write(pipes[ID+1][1], buf, 10);
-		if(minutos == -1) break;
+		if(minutes == -1) break;
 	}
 	close(pipes[ID][0]);
 	close(pipes[ID+1][0]);
