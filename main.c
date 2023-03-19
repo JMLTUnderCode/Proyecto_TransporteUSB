@@ -118,6 +118,7 @@ void child_funtion(int ID, int pipes[][2]){
 		sscanf(buf, "%d", &minutes);
  
 		// HILOS A EJECUTAR//
+		printf("aqui");
 
 		write(pipes[ID+1][1], buf, 10);
 		if(minutes == -1) break;
