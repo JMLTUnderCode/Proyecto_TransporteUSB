@@ -30,6 +30,8 @@ int main(int argc, char *argv[]){
 		// Arreglo de PID de cada proceso creado.
 		int child_pids[num_of_process+2];
 
+		
+
 		// Arreglo de files descriptos o bien sea PIPES.
 		int files_desc[num_of_process+2][2];
 		
@@ -41,6 +43,10 @@ int main(int argc, char *argv[]){
 			PROCESS_ID++;
 			child_pids[PROCESS_ID] = fork();
 			if(!child_pids[PROCESS_ID]) break;
+		}
+
+		FOR(n, 1, num_of_process){
+			amountOfBusesUsedByRoute[n] = 0;
 		}
 		
 		if(!child_pids[PROCESS_ID]){ // PROCESOS HIJOS.
@@ -91,7 +97,7 @@ int main(int argc, char *argv[]){
 				
 				// Aumento de tiempo para probar el codigo.
 				cnt++;
-				if(cnt == 3) Hour_Simul = Hour_Final;
+				if(cnt == 25) Hour_Simul = Hour_Final;
 			}
 
 			close(files_desc[1][1]);
@@ -107,6 +113,22 @@ int main(int argc, char *argv[]){
 /*   Definiciones y encabezados de funciones en "standard_lib.h"   */
 /*******************************************************************/
 
+void *showBus(void *data){
+	struct services *bus = (struct services *) data;
+	int timer = getMinutesOfBusWithMinutesAndHours(bus->leaveing) - 1;
+	char buf[10];
+
+	while(TRUE){
+		if(timer < Hour_Simul){
+			timer = Hour_Simul;
+			printf("%s \n", bus->code);
+			printf("%d \n", Hour_Simul);
+		}
+
+	}
+
+}
+
 void child_funtion(int ID, int pipes[][2]){
 	close(pipes[ID][1]);   // Cerramos escritura pipe izquierdo.
 	close(pipes[ID+1][0]); // Cerramos lectura pipe derecho.
@@ -116,9 +138,22 @@ void child_funtion(int ID, int pipes[][2]){
 	while(TRUE){
 		read(pipes[ID][0], buf, 10);
 		sscanf(buf, "%d", &minutes);
+		Hour_Simul = minutes;
  
 		// HILOS A EJECUTAR//
-		printf("aqui");
+
+		int amountOfBusesSentInCurrentRoute = amountOfBusesUsedByRoute[ID];
+
+		//printf("%d %d\n", minutes, getMinutesOfBusWithMinutesAndHours(total_ser[ID][amountOfBusesSentInCurrentRoute].leaveing));		
+		if(minutes == getMinutesOfBusWithMinutesAndHours(total_ser[ID][amountOfBusesSentInCurrentRoute].leaveing) ){
+			pthread_t newThread;
+			total_ser[ID]->service_id = ID;
+			pthread_create(&listOfPthreads[ID][amountOfBusesSentInCurrentRoute], NULL, &showBus, (void*) &total_ser[ID][amountOfBusesSentInCurrentRoute]);
+			//printf("Run \n");158125
+
+			amountOfBusesUsedByRoute[ID]++;
+		}
+
 
 		write(pipes[ID+1][1], buf, 10);
 		if(minutes == -1) break;
@@ -139,6 +174,10 @@ void tracker_hour(int hour){
 	t_a->tm_min = m;
 	strftime(format, 6, "%H:%M", t_a);
 	printf("Simulation Time: %s\n", format);
+}
+
+int getMinutesOfBusWithMinutesAndHours(struct time_b leavingTimeOfCurrentBus){
+	return leavingTimeOfCurrentBus.hour * 60 + leavingTimeOfCurrentBus.min;
 }
 
 void ReadCacCharge(){

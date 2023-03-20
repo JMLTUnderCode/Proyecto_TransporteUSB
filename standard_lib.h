@@ -72,12 +72,17 @@ struct charge{
 //	- code: Codigo de la parada.
 //	- leaveing: Hora de salida del bus desde la universidad.
 //	- c_capacity: Capacidad de carga del bus. 
+//  - travel_time: Tiempo que tarda el bus en cumplir su ruta
 struct services{
 	int empty;
 	char code[4];
 	struct time_b leaveing;
 	int c_capacity;
+	int travel_time;
+	int service_id;
 };
+
+int amountOfBusesUsedByRoute[n_routes];
 
 // Arreglo de unidimensional de estructuras de chargas. Permite 
 // indexar por ruta leida en archivo de carga. Cada indice contiene
@@ -89,6 +94,8 @@ struct charge total_cha[n_routes];
 // por fila cada ruta/parada los los autobuses asignados para dicha
 // parada. Cada columna contiene la informacion de un bus respectivo.
 struct services total_ser[n_routes][max_bus];
+
+pthread_t listOfPthreads[n_routes][max_bus];
 
 /***********************************************************************/
 
@@ -126,3 +133,5 @@ void open_files(int, char**);
 // Funcion encargada de mostrar errores de llamado al programa.
 // Cuando no se ingresan los archivos o la cantidad correcta.
 void ErrorArgument(int, char**);
+
+int getMinutesOfBusWithMinutesAndHours(struct time_b);
