@@ -30,7 +30,18 @@ int main(int argc, char *argv[]){
 		// Arreglo de PID de cada proceso creado.
 		int child_pids[num_of_process+2];
 
+		// Inicializar array que controla cantidad de buses usados, actualmente usado y que ya cumplieron su ruta
+		FOR(n,1,num_of_process + 2){
+			amountOfBusesUsedByRoute[n] = 0;
+			amountOfBusesFinishedByRoute[n] = 0;
+			amountOfBusesCurrentlyUsedByRoute[n] = 0;
+		}
 		
+		/*FOR(n,1, num_of_process + 2){
+			FOR(k,1,num_of_process + 2){
+				total_ser[n_routes][max_bus].code == total_cha[].code
+			}
+		}*/
 
 		// Arreglo de files descriptos o bien sea PIPES.
 		int files_desc[num_of_process+2][2];
@@ -97,7 +108,7 @@ int main(int argc, char *argv[]){
 				
 				// Aumento de tiempo para probar el codigo.
 				cnt++;
-				if(cnt == 25) Hour_Simul = Hour_Final;
+				if(cnt == 15) Hour_Simul = Hour_Final;
 			}
 
 			close(files_desc[1][1]);
@@ -116,13 +127,13 @@ int main(int argc, char *argv[]){
 void *showBus(void *data){
 	struct services *bus = (struct services *) data;
 	int timer = getMinutesOfBusWithMinutesAndHours(bus->leaveing) - 1;
-	char buf[10];
 
 	while(TRUE){
 		if(timer < Hour_Simul){
 			timer = Hour_Simul;
-			printf("%s \n", bus->code);
-			printf("%d \n", Hour_Simul);
+			//printf("%s ", bus->code);
+			//printf("%d \n", Hour_Simul);
+			timer++;
 		}
 
 	}
@@ -144,16 +155,14 @@ void child_funtion(int ID, int pipes[][2]){
 
 		int amountOfBusesSentInCurrentRoute = amountOfBusesUsedByRoute[ID];
 
-		//printf("%d %d\n", minutes, getMinutesOfBusWithMinutesAndHours(total_ser[ID][amountOfBusesSentInCurrentRoute].leaveing));		
+
+
 		if(minutes == getMinutesOfBusWithMinutesAndHours(total_ser[ID][amountOfBusesSentInCurrentRoute].leaveing) ){
-			pthread_t newThread;
-			total_ser[ID]->service_id = ID;
 			pthread_create(&listOfPthreads[ID][amountOfBusesSentInCurrentRoute], NULL, &showBus, (void*) &total_ser[ID][amountOfBusesSentInCurrentRoute]);
-			//printf("Run \n");158125
 
 			amountOfBusesUsedByRoute[ID]++;
+			amountOfBusesCurrentlyUsedByRoute[ID]++;
 		}
-
 
 		write(pipes[ID+1][1], buf, 10);
 		if(minutes == -1) break;

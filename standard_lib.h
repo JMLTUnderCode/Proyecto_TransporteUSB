@@ -80,9 +80,22 @@ struct services{
 	int c_capacity;
 	int travel_time;
 	int service_id;
+	int progressPercentage;
+	int isWaitingForPeople;
+	int isReturningToUniversity;
 };
 
+/*struct progressOfBus{
+	int progressPercentage;
+	int isWaitingForPeople;
+	int isReturningToUniversity;
+};*/
+
 int amountOfBusesUsedByRoute[n_routes];
+
+int amountOfBusesFinishedByRoute[n_routes];
+
+int amountOfBusesCurrentlyUsedByRoute[n_routes];
 
 // Arreglo de unidimensional de estructuras de chargas. Permite 
 // indexar por ruta leida en archivo de carga. Cada indice contiene
