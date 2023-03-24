@@ -53,34 +53,29 @@ int main(int argc, char *argv[])
 		{
 			amountOfBusesUsedByRoute[n] = 0;
 			amountOfBusesFinishedByRoute[n] = 0;
-			amountOfBusesGoingToBusStation[n] = 0;
-			amountOfBusesGoingToUniversity[n] = 0;
-			amountOfBusesWaitingForPeople[n] = 0;
 		}
 
-		FOR(i, 1, num_of_process + 2)
+		FOR(i, 0, num_of_process + 2)
 		{
-			FOR(j, 1, num_of_process + 2)
+			FOR(j, 0, num_of_process + 2)
 			{
 				if (strcmp(total_ser[i][1].code, total_cha[j].code) == 0)
 				{
-
-					FOR(k, 1, max_bus)
+					// printf("%s: ", total_cha[j].code);
+					/*FOR(k, 0, max_bus)
 					{
 						total_ser[i][k].travel_time = total_cha[j].min_travel;
-						total_ser[i][k].charge_id = j;
 					}
-
+					travelTimeByBusRoute[i] = total_cha[j].min_travel;*/
 					servicePositionInMatrixByRoute[j] = i;
 					routePositionInMatrixByService[i] = j;
-					break;
 				}
 			}
 		}
 
-		FOR(i, 1, num_of_process + 2)
+		FOR(i, 0, num_of_process + 2)
 		{
-			FOR(j, 1, max_bus)
+			FOR(j, 0, max_bus)
 			{
 				total_ser[i][j].numberOfBusInRoute = j;
 				total_ser[i][j].progressPercentage = 0;
@@ -148,7 +143,7 @@ int main(int argc, char *argv[])
 
 				// Aumento de tiempo para probar el codigo.
 				cnt++;
-				if (cnt == 30)
+				if (cnt == 90)
 					Hour_Simul = Hour_Final;
 			}
 
@@ -168,7 +163,7 @@ int main(int argc, char *argv[])
 void *showBus(void *data)
 {
 	struct services *bus = (struct services *)data;
-	int leavingTime = getMinutesOfBusWithMinutesAndHours(bus->leaveing) - 1;
+	int leavingTime = getMinutesOfBusWithMinutesAndHours(bus->leaveing);
 	int timer = leavingTime;
 	int routeTimeOfBus = bus->travel_time;
 	int busAlreadyArrived = 0;
@@ -186,8 +181,6 @@ void *showBus(void *data)
 			{
 				if (busAlreadyArrived == 0)
 				{
-					amountOfBusesGoingToBusStation[bus->charge_id]--;
-					amountOfBusesWaitingForPeople[bus->charge_id]++;
 					bus->progressPercentage = 0;
 					bus->isWaitingForPeople = 1;
 					busAlreadyArrived = 1;
@@ -195,8 +188,6 @@ void *showBus(void *data)
 			}
 			else
 			{
-				amountOfBusesWaitingForPeople[bus->charge_id]--;
-				amountOfBusesGoingToUniversity[bus->charge_id]++;
 				bus->isWaitingForPeople = 0;
 				bus->isReturningToUniversity = 1;
 				break;
@@ -212,10 +203,9 @@ void child_funtion(int ID, int pipes[][2])
 	close(pipes[ID + 1][0]); // Cerramos lectura pipe derecho.
 	int minutes = 0;
 	char buf[10];
-	int amountOfBusesGoingToBusStationInCurrentProcess = 0;
-	int amountOfBusesGoingToUniversityInCurrentProcess = 0;
-	int amountOfBusesWaitingForPeopleInCurrentProcess = 0;
-	int amountOfBusesSentInCurrentRoute = 0;
+	// int amountOfBusesSentInCurrentRoute = 0;
+	int positionInServiceMatrixOfCurrentProcess = servicePositionInMatrixByRoute[ID];
+	int timeOfArriveToUniversityOfNextBus = 0;
 
 	while (TRUE)
 	{
@@ -225,47 +215,49 @@ void child_funtion(int ID, int pipes[][2])
 
 		// HILOS A EJECUTAR//
 
-		int positionInServiceMatrixOfCurrentProcess = servicePositionInMatrixByRoute[ID];
-
-		if (minutes == getMinutesOfBusWithMinutesAndHours(total_ser[positionInServiceMatrixOfCurrentProcess][amountOfBusesSentInCurrentRoute].leaveing))
+		if (minutes == getMinutesOfBusWithMinutesAndHours(total_ser[positionInServiceMatrixOfCurrentProcess][amountOfBusesUsedByRoute[ID]].leaveing))
 		{
-			pthread_create(&listOfPthreads[ID][amountOfBusesSentInCurrentRoute], NULL, &showBus, (void *)&total_ser[positionInServiceMatrixOfCurrentProcess][amountOfBusesSentInCurrentRoute]);
+			total_ser[positionInServiceMatrixOfCurrentProcess][amountOfBusesUsedByRoute[ID]].travel_time = total_cha[ID].min_travel;
+			pthread_create(&listOfPthreads[ID][amountOfBusesUsedByRoute[ID]], NULL, &showBus, (void *)&total_ser[positionInServiceMatrixOfCurrentProcess][amountOfBusesUsedByRoute[ID]]);
 			amountOfBusesUsedByRoute[ID]++;
-			amountOfBusesGoingToBusStation[ID]++;
 		}
 
-		amountOfBusesSentInCurrentRoute = amountOfBusesUsedByRoute[ID];
-		amountOfBusesGoingToBusStationInCurrentProcess = amountOfBusesGoingToBusStation[ID];
-		amountOfBusesGoingToUniversityInCurrentProcess = amountOfBusesGoingToUniversity[ID];
-		amountOfBusesWaitingForPeopleInCurrentProcess = amountOfBusesWaitingForPeople[ID];
-
-		if (amountOfBusesGoingToBusStationInCurrentProcess > 0 ||
-			amountOfBusesGoingToUniversityInCurrentProcess > 0 ||
-			amountOfBusesWaitingForPeopleInCurrentProcess > 0)
+		if (amountOfBusesUsedByRoute[ID] - amountOfBusesFinishedByRoute[ID] > 0)
 		{
 			printf("%s: ", total_cha[ID].code);
-		}
 
-		FOR(n, 0, amountOfBusesWaitingForPeopleInCurrentProcess)
-		{
-			printf("[..........] ");
-		}
+			for (int i = amountOfBusesFinishedByRoute[ID]; i < amountOfBusesUsedByRoute[ID]; i++)
+			{
+				if (total_ser[positionInServiceMatrixOfCurrentProcess][i].isWaitingForPeople == 1)
+				{
+					printf("[..........] ");
+				}
+				else if (total_ser[positionInServiceMatrixOfCurrentProcess][i].isReturningToUniversity == 0)
+				{
+					print_bus(total_ser[positionInServiceMatrixOfCurrentProcess][i].progressPercentage, total_ser[positionInServiceMatrixOfCurrentProcess][i].isReturningToUniversity);
+				}
+			}
 
-		for (int i = 0; i < amountOfBusesGoingToBusStationInCurrentProcess; i++)
-		{
-			print_bus(total_ser[positionInServiceMatrixOfCurrentProcess][i].progressPercentage, 0);
-		}
-
-		/*FOR(n, 1, amountOfBusesWaitingForPeople[ID])
-		{
-		}*/
-
-		if (amountOfBusesGoingToBusStation[positionInServiceMatrixOfCurrentProcess] > 0 ||
-			amountOfBusesGoingToUniversity[positionInServiceMatrixOfCurrentProcess] > 0 ||
-			amountOfBusesWaitingForPeople[positionInServiceMatrixOfCurrentProcess] > 0)
-		{
 			printf(" \n");
 		}
+
+		timeOfArriveToUniversityOfNextBus = getMinutesOfBusWithMinutesAndHours(total_ser[positionInServiceMatrixOfCurrentProcess][amountOfBusesFinishedByRoute[ID]].leaveing) + 10 + total_ser[positionInServiceMatrixOfCurrentProcess][amountOfBusesFinishedByRoute[ID]].travel_time * 2;
+
+		if (amountOfBusesUsedByRoute[ID] > amountOfBusesFinishedByRoute[ID] && timeOfArriveToUniversityOfNextBus <= Hour_Simul)
+		{
+			amountOfBusesFinishedByRoute[ID]++;
+		}
+
+		/*FOR(n, 0, amountOfBusesWaitingForPeopleInCurrentProcess)
+		{
+			printf("[..........] ");
+		}*/
+
+		/*for (int i = 0; i < amountOfBusesGoingToBusStationInCurrentProcess; i++)
+		{
+			print_bus(total_ser[positionInServiceMatrixOfCurrentProcess][i].progressPercentage, 0);
+
+		}*/
 
 		write(pipes[ID + 1][1], buf, 10);
 		if (minutes == -1)
@@ -308,6 +300,11 @@ void print_bus(int percentage, int direction)
 	int rest;
 	int count = percentage / 10;
 	printf("[");
+
+	if (count > 10)
+	{
+		count = 10;
+	}
 	if (direction == 0)
 	{
 		for (int i = 0; i < count; ++i)

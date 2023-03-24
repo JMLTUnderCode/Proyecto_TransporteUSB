@@ -87,22 +87,9 @@ struct services
 	int isReturningToUniversity;
 };
 
-struct progressOfBus
-{
-	int progressPercentage;
-	int isWaitingForPeople;
-	int isReturningToUniversity;
-};
-
 int amountOfBusesUsedByRoute[n_routes];
 
 int amountOfBusesFinishedByRoute[n_routes];
-
-int amountOfBusesGoingToBusStation[n_routes];
-
-int amountOfBusesGoingToUniversity[n_routes];
-
-int amountOfBusesWaitingForPeople[n_routes];
 
 int servicePositionInMatrixByRoute[n_routes];
 
@@ -118,8 +105,6 @@ struct charge total_cha[n_routes];
 // por fila cada ruta/parada los los autobuses asignados para dicha
 // parada. Cada columna contiene la informacion de un bus respectivo.
 struct services total_ser[n_routes][max_bus];
-
-struct progressOfBus matrixWithProgressOfBus[n_routes][max_bus];
 
 pthread_t listOfPthreads[n_routes][max_bus];
 
