@@ -91,6 +91,8 @@ int amountOfBusesUsedByRoute[n_routes];
 
 int amountOfBusesFinishedByRoute[n_routes];
 
+int travelTimeByBusRoute[n_routes];
+
 int servicePositionInMatrixByRoute[n_routes];
 
 int routePositionInMatrixByService[n_routes];

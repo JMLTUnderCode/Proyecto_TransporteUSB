@@ -143,7 +143,7 @@ int main(int argc, char *argv[])
 
 				// Aumento de tiempo para probar el codigo.
 				cnt++;
-				if (cnt == 90)
+				if (cnt == 300)
 					Hour_Simul = Hour_Final;
 			}
 
@@ -232,8 +232,15 @@ void child_funtion(int ID, int pipes[][2])
 				{
 					printf("[..........] ");
 				}
+
 				else if (total_ser[positionInServiceMatrixOfCurrentProcess][i].isReturningToUniversity == 0)
 				{
+					print_bus(total_ser[positionInServiceMatrixOfCurrentProcess][i].progressPercentage, total_ser[positionInServiceMatrixOfCurrentProcess][i].isReturningToUniversity);
+				}
+				else if (total_ser[positionInServiceMatrixOfCurrentProcess][i].isReturningToUniversity == 1)
+				{
+					int leavingTimeOfBusAfterWaitForPeople = getMinutesOfBusWithMinutesAndHours(total_ser[positionInServiceMatrixOfCurrentProcess][i].leaveing) + 10 + total_ser[positionInServiceMatrixOfCurrentProcess][i].travel_time;
+					total_ser[positionInServiceMatrixOfCurrentProcess][i].progressPercentage = getPercentageOfNumber(Hour_Simul - leavingTimeOfBusAfterWaitForPeople, total_ser[positionInServiceMatrixOfCurrentProcess][i].travel_time);
 					print_bus(total_ser[positionInServiceMatrixOfCurrentProcess][i].progressPercentage, total_ser[positionInServiceMatrixOfCurrentProcess][i].isReturningToUniversity);
 				}
 			}
@@ -305,6 +312,11 @@ void print_bus(int percentage, int direction)
 	{
 		count = 10;
 	}
+	else if (count < 0)
+	{
+		count = 0;
+	}
+
 	if (direction == 0)
 	{
 		for (int i = 0; i < count; ++i)
