@@ -143,8 +143,8 @@ int main(int argc, char *argv[])
 
 				// Aumento de tiempo para probar el codigo.
 				cnt++;
-				if (cnt == 300)
-					Hour_Simul = Hour_Final;
+				//if (cnt == 300)
+				//	Hour_Simul = Hour_Final;
 			}
 
 			close(files_desc[1][1]);
@@ -459,7 +459,7 @@ void ReadCacService()
 			}
 		}
 	}
-
+	Hour_Final++;
 	Hour_Simul -= 5;	   // Iniciamos 5 minutos antes.
 	fclose(services_file); // Cerramos el archivo.
 }
