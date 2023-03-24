@@ -143,8 +143,7 @@ int main(int argc, char *argv[])
 
 				// Aumento de tiempo para probar el codigo.
 				cnt++;
-				if (cnt == 300)
-					Hour_Simul = Hour_Final;
+				// if (cnt == 300) Hour_Simul = Hour_Final;
 			}
 
 			close(files_desc[1][1]);
