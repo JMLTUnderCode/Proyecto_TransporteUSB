@@ -85,6 +85,8 @@ struct services
 	int progressPercentage;
 	int isWaitingForPeople;
 	int isReturningToUniversity;
+	int peopleLate ;
+	int peopleOnTime ;
 };
 
 int amountOfBusesUsedByRoute[n_routes];
