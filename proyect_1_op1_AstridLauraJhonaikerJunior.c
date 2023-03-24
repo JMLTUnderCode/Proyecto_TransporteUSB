@@ -81,6 +81,8 @@ int main(int argc, char *argv[])
 				total_ser[i][j].progressPercentage = 0;
 				total_ser[i][j].isWaitingForPeople = 0;
 				total_ser[i][j].isReturningToUniversity = 0;
+				total_ser[i][j].peopleLate = 0;
+				total_ser[i][j].peopleOnTime = 0;
 			}
 		}
 
@@ -225,6 +227,46 @@ void child_funtion(int ID, int pipes[][2])
 		if (amountOfBusesUsedByRoute[ID] - amountOfBusesFinishedByRoute[ID] > 0)
 		{
 			printf("%s: ", total_cha[ID].code);
+			
+			int currentCapacity = 0;
+			peopleWaiting += total_cha[ID].queue_per[first_arrival];
+			currentCapacity = total_ser[ID][amountOfBusesUsedByRoute[ID]].c_capacity - peopleWaiting;
+			peopleWaiting -= currentCapacity;
+			int hourInMinutes = first_arrival*60;
+			int timeLimit = hourInMinutes + 90;
+			int leavingInMinutes = getMinutesOfBusWithMinutesAndHours(total_ser[ID][amountOfBusesUsedByRoute[ID]].leaveing);
+			if(timeLimit < leavingInMinutes){	
+				total_ser[ID][amountOfBusesUsedByRoute[ID]].peopleOnTime += total_ser[ID][amountOfBusesUsedByRoute[ID]].c_capacity;
+			}else{ 
+				total_ser[ID][amountOfBusesUsedByRoute[ID]].peopleLate += total_ser[ID][amountOfBusesUsedByRoute[ID]].c_capacity;
+			}
+			while(currentCapacity > 0)
+			{	
+				total_cha[ID].queue_per[first_arrival] -= total_ser[ID][amountOfBusesUsedByRoute[ID]].c_capacity;
+				currentCapacity -= total_cha[ID].queue_per[first_arrival];
+				peopleWaiting -= total_cha[ID].queue_per[first_arrival];
+				while(total_cha[ID].queue_per[first_arrival] < 0){
+					
+					if(timeLimit < leavingInMinutes){
+						total_ser[ID][amountOfBusesUsedByRoute[ID]].peopleOnTime += total_ser[ID][amountOfBusesUsedByRoute[ID]].c_capacity;
+					}else{
+						total_ser[ID][amountOfBusesUsedByRoute[ID]].peopleLate += total_ser[ID][amountOfBusesUsedByRoute[ID]].c_capacity;
+					}
+					total_cha[ID].queue_per[first_arrival+1] -= total_cha[ID].queue_per[first_arrival];
+					currentCapacity -= total_cha[ID].queue_per[first_arrival];
+					peopleWaiting -= total_cha[ID].queue_per[first_arrival];
+					total_cha[ID].queue_per[first_arrival] = 0;
+					first_arrival++;
+				} 
+
+				if(timeLimit < leavingInMinutes){	// a tiempo
+					total_ser[ID][amountOfBusesUsedByRoute[ID]].peopleOnTime += total_ser[ID][amountOfBusesUsedByRoute[ID]].c_capacity;
+				}else{ // caso >=. no a tiempo
+					total_ser[ID][amountOfBusesUsedByRoute[ID]].peopleLate += total_ser[ID][amountOfBusesUsedByRoute[ID]].c_capacity;
+				}
+
+			}
+			printf("%d ",peopleWaiting);
 
 			for (int i = amountOfBusesFinishedByRoute[ID]; i < amountOfBusesUsedByRoute[ID]; i++)
 			{
