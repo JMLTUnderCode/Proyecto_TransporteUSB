@@ -65,6 +65,8 @@ struct charge
 	char code[4];
 	char name[64];
 	int min_travel;
+	int currentHour;
+	int peopleThatDidnotGetTheBus;
 };
 
 // Estructura para guardar la informacion del archivo de servicio.
@@ -87,6 +89,8 @@ struct services
 	int isReturningToUniversity;
 	int peopleLate;
 	int peopleOnTime;
+	int peopleCharged;
+	int inefficients;
 };
 
 int amountOfBusesUsedByRoute[n_routes];
