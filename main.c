@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
         {                                         // PROCESO PADRE.
             close(files_desc[1][0]);              // Cerramos primer pipe de lectura.
             close(files_desc[PROCESS_ID + 1][1]); // Cerramos el ultimo pipe escritura.
-            char buf[14*n_routes], buf1[14*n_routes];
+            char buf[14*n_routes];
             int minutes = 0;
             struct timeval tm_begin, tm_end;
             long t_ms = 1e6 * Min_Simul;
@@ -81,16 +81,17 @@ int main(int argc, char *argv[])
                     gettimeofday(&tm_begin, NULL);
                     write(files_desc[1][1], buf, 14*n_routes);
                 }
-                read(files_desc[PROCESS_ID + 1][0], buf1, 14*n_routes);
+                read(files_desc[PROCESS_ID + 1][0], buf, 14*n_routes);
                 gettimeofday(&tm_end, NULL);
-                sscanf(buf1, "%d", &minutes);
-                if(buf[0] == '-'){
-                   sscanf(buf, 3, "%d", &minutes);
-
-                }
-                if (minutes == -1){
+                if( buf[0] == '-' ){
+                    printf("\nCODE  Ineficientes  Eficientes\n");
+                    printf("%s", &buf[2]);
+                    printf("\n\n");
                     break;
+                } else {
+                    sscanf(buf, "%d", &minutes);
                 }
+
                 scs = (tm_end.tv_sec - tm_begin.tv_sec);
                 curr_tms = (scs * 1e6) + tm_end.tv_usec - tm_begin.tv_usec;
 
@@ -119,9 +120,6 @@ int main(int argc, char *argv[])
                 */
             }
             
-            printf(" CODE Inefficents Efficents\n");
-            printf("%s", buf);
-
            /* FOR(n, 1, num_of_process){
                 printf(" %5s", total_cha[n].code);
                 printf("       %d ", total_cha[n].peopleThatDidnotGetTheBus);
@@ -186,7 +184,8 @@ void child_funtion(int ID, int pipes[][2])
     int hours = 0;
     int lastHourWithPeopleInBus = 0;
     char buf[14*n_routes];
-    char results[14];
+    char buf_data[64];
+    char buf_aux[14*n_routes];
     // int amountOfBusesSentInCurrentRoute = 0;
     int positionInServiceMatrixOfCurrentProcess = servicePositionInMatrixByRoute[ID];
     int timeOfArriveToUniversityOfNextBus = 0;
@@ -196,29 +195,19 @@ void child_funtion(int ID, int pipes[][2])
     while (TRUE)
     {
         read(pipes[ID][0], buf, 14*n_routes);
-        if(buf[0] == '-'){
-           sscanf(buf, 3, "%d", &minutes);
-
-        }
-
-        sscanf(buf, "%d", &minutes);
-
-        if(minutes == -1)
-        {   
-            char late = total_cha[ID].peopleThatDidnotGetTheBus + '0';
-            char onTime = (total_cha[ID].totalPersonInRoute - total_cha[ID].peopleThatDidnotGetTheBus) + '0';
-            sprintf(results, "\n %s %s %s\n", total_cha[ID].code, late, onTime );
-            char minutesInChar[3];
-            sprintf(minutesInChar,"%d", minutes);
-            strcat(minutesInChar, results);
-            strcat(buf, minutesInChar);
+        if( buf[0] != '-' ){
+            sscanf(buf, "%d", &minutes);
+        } else { 
+            int late = total_cha[ID].peopleThatDidnotGetTheBus;
+            int onTime = (total_cha[ID].totalPersonInRoute - total_cha[ID].peopleThatDidnotGetTheBus);
+            sprintf(buf_data, "\n %s %9d %11d", total_cha[ID].code, late, onTime );
+            strcat(buf, buf_data);
+            write(pipes[ID + 1][1], buf, 14*n_routes);
             break;
         }
 
         Hour_Simul = minutes;
         hours = convertMinutesToHours(minutes);
-
-       
 
         // HILOS A EJECUTAR//
 
@@ -246,7 +235,9 @@ void child_funtion(int ID, int pipes[][2])
 		        // Pasable a funcion
 		        if( ((Hour_Simul - 91) % 60 == 0) && hours > 6){
 		            int HourInefficent = ((Hour_Simul - 91) / 60);
-		            total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[HourInefficent];    
+                if(total_cha[ID].queue_per[HourInefficent] > 0){
+		                total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[HourInefficent];
+                }
                     //printf("PP: %d ---- ", total_cha[ID].peopleThatDidnotGetTheBus);                  
 		        }
 
@@ -330,8 +321,6 @@ void child_funtion(int ID, int pipes[][2])
         }*/
 
         write(pipes[ID + 1][1], buf, 14*n_routes);
-
-
     }
     close(pipes[ID][0]);
     close(pipes[ID + 1][0]);
