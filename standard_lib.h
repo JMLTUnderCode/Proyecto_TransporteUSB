@@ -67,6 +67,7 @@ struct charge
 	int min_travel;
 	int currentHour;
 	int peopleThatDidnotGetTheBus;
+	int totalPersonInRoute;
 };
 
 // Estructura para guardar la informacion del archivo de servicio.
@@ -90,7 +91,6 @@ struct services
 	int peopleLate;
 	int peopleOnTime;
 	int peopleCharged;
-	int inefficients;
 };
 
 int amountOfBusesUsedByRoute[n_routes];
@@ -145,6 +145,10 @@ int num_of_lines(FILE *);
 // por default.
 void initial_structs();
 
+// Funcion encargada de actualizar estructuras luego de obtener ciertos
+// datos de los archivos carga y servicios.
+void update_structs();
+
 // Funcion encargada de abrir los archivos dados como argumento
 // en la funcion main.
 void open_files(int, char **);
@@ -158,3 +162,6 @@ int getMinutesOfBusWithMinutesAndHours(struct time_b);
 void print_bus(int, int);
 
 int getPercentageOfNumber(int, int);
+
+int convertMinutesToHours(int);
+

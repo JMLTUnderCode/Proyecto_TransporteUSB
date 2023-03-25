@@ -28,6 +28,8 @@ int main(int argc, char *argv[])
 
         ReadCacCharge();  // Lectura del archivo de carga.
         ReadCacService(); // Lectura del archivo de servicios.
+        
+        update_structs(); // Actualizacion de estructuras.
 
         // Arreglo de PID de cada proceso creado.
         int child_pids[num_of_process + 2];
@@ -37,7 +39,7 @@ int main(int argc, char *argv[])
 
         // Apertura de todos los pipes a usar.
         FOR(n, 1, num_of_process + 2)
-        pipe(files_desc[n]);
+            pipe(files_desc[n]);
 
         // Creacion de procesos hijos.
         FOR(n, 1, num_of_process)
@@ -46,45 +48,6 @@ int main(int argc, char *argv[])
             child_pids[PROCESS_ID] = fork();
             if (!child_pids[PROCESS_ID])
                 break;
-        }
-
-        // Inicializar array que controla cantidad de buses usados, actualmente usado y que ya cumplieron su ruta
-        FOR(n, 1, num_of_process + 1)
-        {
-            amountOfBusesUsedByRoute[n] = 0;
-            amountOfBusesFinishedByRoute[n] = 0;
-            total_cha[n].peopleThatDidnotGetTheBus = 0;
-        }
-
-        FOR(i, 0, num_of_process + 2)
-        {
-            FOR(j, 0, num_of_process + 2)
-            {
-                if (strcmp(total_ser[i][1].code, total_cha[j].code) == 0)
-                {
-                    // printf("%s: ", total_cha[j].code);
-                    /*FOR(k, 0, max_bus)
-                    {
-                        total_ser[i][k].travel_time = total_cha[j].min_travel;
-                    }
-                    travelTimeByBusRoute[i] = total_cha[j].min_travel;*/
-                    servicePositionInMatrixByRoute[j] = i;
-                    routePositionInMatrixByService[i] = j;
-                }
-            }
-        }
-
-        FOR(i, 0, num_of_process + 2)
-        {
-            FOR(j, 0, max_bus)
-            {
-                total_ser[i][j].numberOfBusInRoute = j;
-                total_ser[i][j].progressPercentage = 0;
-                total_ser[i][j].isWaitingForPeople = 0;
-                total_ser[i][j].isReturningToUniversity = 0;
-                total_ser[i][j].peopleLate = 0;
-                total_ser[i][j].peopleOnTime = 0;
-            }
         }
 
         if (!child_pids[PROCESS_ID])
@@ -149,6 +112,13 @@ int main(int argc, char *argv[])
                 // if (cnt == 300)
                 //	Hour_Simul = Hour_Final;
             }
+            
+            printf(" CODE     Inefficents     Efficents\n");
+            FOR(n, 1, num_of_process){
+                printf(" %5s", total_cha[n].code);
+                printf("       %d ", total_cha[n].peopleThatDidnotGetTheBus);
+                printf("       %d\n", total_cha[n].totalPersonInRoute - total_cha[n].peopleThatDidnotGetTheBus);
+            }
 
             close(files_desc[1][1]);
             close(files_desc[PROCESS_ID + 1][0]); // Cerramos el ultimo pipe escritura.
@@ -212,6 +182,7 @@ void child_funtion(int ID, int pipes[][2])
     int positionInServiceMatrixOfCurrentProcess = servicePositionInMatrixByRoute[ID];
     int timeOfArriveToUniversityOfNextBus = 0;
     int peopleWaiting = 0;
+    int amountOfPeopleThatWillJoinToBus = 0;
     while (TRUE)
     {
         read(pipes[ID][0], buf, 10);
@@ -232,34 +203,39 @@ void child_funtion(int ID, int pipes[][2])
         {
             printf("%s: ", total_cha[ID].code);
 
-            for (int i = amountOfBusesFinishedByRoute[ID]; i < amountOfBusesUsedByRoute[ID]; i++)
-            {
-                if (hours < 6)
-                {
-                    break;
-                }
-                if (total_ser[positionInServiceMatrixOfCurrentProcess][i].isWaitingForPeople == 1)
-                {
-                    int amountOfAvailableSpaceInTheBus = total_ser[positionInServiceMatrixOfCurrentProcess][i].c_capacity - total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged;
-                    int amountOfPeopleThatWillJoinToBus = 0;
-                    if (amountOfAvailableSpaceInTheBus >= total_cha[ID].queue_per[lastHourWithPeopleInBus])
-                    {
+            if(first_arrival < 14 && hours > 5){
+		for (int i = amountOfBusesFinishedByRoute[ID]; i < amountOfBusesUsedByRoute[ID]; i++)
+		{
 
-                                                if (hours > lastHourWithPeopleInBus)
-                        {
-                            lastHourWithPeopleInBus++;
-                        }
-                    }
-                    else
-                    {
-                        amountOfPeopleThatWillJoinToBus = total_cha[ID].queue_per[lastHourWithPeopleInBus] - amountOfAvailableSpaceInTheBus;
-                        total_cha[ID].queue_per[lastHourWithPeopleInBus] = total_cha[ID].queue_per[lastHourWithPeopleInBus] - amountOfPeopleThatWillJoinToBus;
-                        total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged = total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged + amountOfPeopleThatWillJoinToBus;
-                    }
-                }
+			if (total_ser[positionInServiceMatrixOfCurrentProcess][i].isWaitingForPeople == 1)
+			{
+			    int amountOfAvailableSpaceInTheBus = total_ser[positionInServiceMatrixOfCurrentProcess][i].c_capacity - total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged;
+			    
+			    amountOfPeopleThatWillJoinToBus = total_cha[ID].queue_per[first_arrival] - amountOfAvailableSpaceInTheBus;
+			    total_cha[ID].queue_per[first_arrival] -= amountOfPeopleThatWillJoinToBus;
+			    total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged += amountOfPeopleThatWillJoinToBus;
+
+			    if( total_cha[ID].queue_per[first_arrival] == 0 ){
+				first_arrival++;
+				 
+			    } else if( total_cha[ID].queue_per[first_arrival] < 0 ){
+				total_cha[ID].queue_per[first_arrival+1] += total_cha[ID].queue_per[first_arrival];
+				total_cha[ID].queue_per[first_arrival] = 0;
+				first_arrival++;
+			    }
+
+			    // Pasable a funcion
+			    if( (Hour_Simul - 31) % 60 == 0 ){
+				int HourInefficent = ((Hour_Simul - 31) / 60) - 1;
+				if( total_cha[ID].queue_per[HourInefficent] != 0 ){
+				    total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[HourInefficent];
+				}
+			    }
+			}
+		}
             }
 
-            printf("%d ", peopleWaiting);
+            printf("%d ", amountOfPeopleThatWillJoinToBus);
 
             for (int i = amountOfBusesFinishedByRoute[ID]; i < amountOfBusesUsedByRoute[ID]; i++)
             {
@@ -515,17 +491,51 @@ int convertMinutesToHours(int minutes)
     return minutes / 60;
 }
 
-void initial_structs()
-{
+void initial_structs() {
     // Init de "total_cha" con identificador vacio.
     FOR(i, 0, n_routes)
     total_cha[i].empty = 0;
 
     // Init de "total_set" con identificador vacio.
-    FOR(r, 0, n_routes)
-    {
+    FOR(r, 0, n_routes) {
         FOR(c, 0, max_bus)
-        total_ser[r][c].empty = 0;
+            total_ser[r][c].empty = 0;
+    }
+}
+
+void update_structs(){
+    // Inicializar array que controla cantidad de buses usados, actualmente usado y que ya cumplieron su ruta
+    FOR(n, 1, num_of_process + 1) {
+        amountOfBusesUsedByRoute[n] = 0;
+        amountOfBusesFinishedByRoute[n] = 0;
+        total_cha[n].peopleThatDidnotGetTheBus = 0;
+        total_cha[n].totalPersonInRoute = 0;
+    }
+
+    FOR(i, 0, num_of_process + 2) {
+        FOR(j, 0, num_of_process + 2) {
+            if (strcmp(total_ser[i][1].code, total_cha[j].code) == 0){
+                // printf("%s: ", total_cha[j].code);
+                /*FOR(k, 0, max_bus) {
+                    total_ser[i][k].travel_time = total_cha[j].min_travel;
+                    }
+                    travelTimeByBusRoute[i] = total_cha[j].min_travel;*/
+                servicePositionInMatrixByRoute[j] = i;
+                routePositionInMatrixByService[i] = j;
+            }
+        }
+    }
+
+    FOR(i, 0, num_of_process + 2) { 
+        FOR(j, 0, max_bus) {
+            total_ser[i][j].numberOfBusInRoute = j;
+            total_ser[i][j].progressPercentage = 0;
+            total_ser[i][j].isWaitingForPeople = 0;
+            total_ser[i][j].isReturningToUniversity = 0;
+            total_ser[i][j].peopleLate = 0;
+            total_ser[i][j].peopleOnTime = 0;
+            total_ser[i][j].peopleCharged = 0;
+        }
     }
 }
 
