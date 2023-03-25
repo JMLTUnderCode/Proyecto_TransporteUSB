@@ -184,6 +184,7 @@ void child_funtion(int ID, int pipes[][2])
     int timeOfArriveToUniversityOfNextBus = 0;
     int peopleWaiting = 0;
     int amountOfPeopleThatWillJoinToBus = 0;
+
     while (TRUE)
     {
         read(pipes[ID][0], buf, 10);
@@ -203,19 +204,23 @@ void child_funtion(int ID, int pipes[][2])
         if (amountOfBusesUsedByRoute[ID] - amountOfBusesFinishedByRoute[ID] > 0)
         {
             printf("%s: ", total_cha[ID].code);
-
+            
+            int updateQueue = 0;
             if(first_arrival < 14 && hours > 5){
-                if(60*hours == Hour_Simul)
+                if(60*hours == Hour_Simul){
                     amountOfPeopleThatWillJoinToBus += total_cha[ID].queue_per[hours];
+                    updateQueue = 1;
+                }
+               // printf("PP: %d ", amountOfPeopleThatWillJoinToBus);
                 
                 if(first_arrival <= Hour_Simul) {
 
 		        // Pasable a funcion
-		        if( (Hour_Simul - 91) % 60 == 0 && hours > 6){
+		        if( ((Hour_Simul - 91) % 60 == 0) && hours > 6){
 		            int HourInefficent = ((Hour_Simul - 91) / 60);
-		            total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[HourInefficent];                        
+		            total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[HourInefficent];     
+                    printf("PP: %d ---- ", total_cha[ID].peopleThatDidnotGetTheBus);                  
 		        }
-
 
 		        for (int i = amountOfBusesFinishedByRoute[ID]; i < amountOfBusesUsedByRoute[ID]; i++)
 		        {
@@ -224,9 +229,10 @@ void child_funtion(int ID, int pipes[][2])
 
 
 		                int amountOfAvailableSpaceInTheBus = total_ser[positionInServiceMatrixOfCurrentProcess][i].c_capacity - total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged;
-
-
-		                amountOfPeopleThatWillJoinToBus = total_cha[ID].queue_per[first_arrival] - amountOfAvailableSpaceInTheBus;
+                        if(updateQueue == 0){
+                            amountOfPeopleThatWillJoinToBus -=  amountOfAvailableSpaceInTheBus;
+                        }
+		                
 		                if(amountOfPeopleThatWillJoinToBus == -amountOfAvailableSpaceInTheBus  ){
 		                    amountOfPeopleThatWillJoinToBus = 0;
 
@@ -380,6 +386,7 @@ void ReadCacCharge()
     FOR(r, 0, rows)
     {
         aux = &total_cha[r];
+        aux->totalPersonInRoute = 0;
         if (fgets(buf, sizeof(buf), charge_file))
         {
             aux->empty = 1;
@@ -417,7 +424,9 @@ void ReadCacCharge()
                     for (int k = first_arrival; k - 1 < last_arrival; k++)
                     {
                         aux->queue_per[k] = atoi(ptr);
+                        aux ->totalPersonInRoute += aux ->queue_per[k];
                         ptr = strtok(NULL, ",");
+
                     }
                 }
             }
@@ -527,7 +536,7 @@ void update_structs(){
         amountOfBusesUsedByRoute[n] = 0;
         amountOfBusesFinishedByRoute[n] = 0;
         total_cha[n].peopleThatDidnotGetTheBus = 0;
-        total_cha[n].totalPersonInRoute = 0;
+        //total_cha[n].totalPersonInRoute = 0;
     }
 
     FOR(i, 0, num_of_process + 2) {
