@@ -108,9 +108,10 @@ int main(int argc, char *argv[])
                     Hour_Simul++;
 
                 // Aumento de tiempo para probar el codigo.
-                cnt++;
-                // if (cnt == 300)
-                //	Hour_Simul = Hour_Final;
+                /*cnt++;
+                if (cnt == 160)
+                    Hour_Simul = Hour_Final;
+                */
             }
             
             printf(" CODE     Inefficents     Efficents\n");
@@ -204,35 +205,48 @@ void child_funtion(int ID, int pipes[][2])
             printf("%s: ", total_cha[ID].code);
 
             if(first_arrival < 14 && hours > 5){
-		for (int i = amountOfBusesFinishedByRoute[ID]; i < amountOfBusesUsedByRoute[ID]; i++)
-		{
+                if(60*hours == Hour_Simul)
+                    amountOfPeopleThatWillJoinToBus += total_cha[ID].queue_per[hours];
+                
+                if(first_arrival <= Hour_Simul) {
 
-			if (total_ser[positionInServiceMatrixOfCurrentProcess][i].isWaitingForPeople == 1)
-			{
-			    int amountOfAvailableSpaceInTheBus = total_ser[positionInServiceMatrixOfCurrentProcess][i].c_capacity - total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged;
-			    
-			    amountOfPeopleThatWillJoinToBus = total_cha[ID].queue_per[first_arrival] - amountOfAvailableSpaceInTheBus;
-			    total_cha[ID].queue_per[first_arrival] -= amountOfPeopleThatWillJoinToBus;
-			    total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged += amountOfPeopleThatWillJoinToBus;
+		        // Pasable a funcion
+		        if( (Hour_Simul - 91) % 60 == 0 && hours > 6){
+		            int HourInefficent = ((Hour_Simul - 91) / 60);
+		            total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[HourInefficent];                        
+		        }
 
-			    if( total_cha[ID].queue_per[first_arrival] == 0 ){
-				first_arrival++;
-				 
-			    } else if( total_cha[ID].queue_per[first_arrival] < 0 ){
-				total_cha[ID].queue_per[first_arrival+1] += total_cha[ID].queue_per[first_arrival];
-				total_cha[ID].queue_per[first_arrival] = 0;
-				first_arrival++;
-			    }
 
-			    // Pasable a funcion
-			    if( (Hour_Simul - 31) % 60 == 0 ){
-				int HourInefficent = ((Hour_Simul - 31) / 60) - 1;
-				if( total_cha[ID].queue_per[HourInefficent] != 0 ){
-				    total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[HourInefficent];
-				}
-			    }
-			}
-		}
+		        for (int i = amountOfBusesFinishedByRoute[ID]; i < amountOfBusesUsedByRoute[ID]; i++)
+		        {
+		            if (total_ser[positionInServiceMatrixOfCurrentProcess][i].isWaitingForPeople == 1)
+		            {
+
+
+		                int amountOfAvailableSpaceInTheBus = total_ser[positionInServiceMatrixOfCurrentProcess][i].c_capacity - total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged;
+
+
+		                amountOfPeopleThatWillJoinToBus = total_cha[ID].queue_per[first_arrival] - amountOfAvailableSpaceInTheBus;
+		                if(amountOfPeopleThatWillJoinToBus == -amountOfAvailableSpaceInTheBus  ){
+		                    amountOfPeopleThatWillJoinToBus = 0;
+
+		                } else if ( amountOfPeopleThatWillJoinToBus < 0 ){
+		                    total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged += total_cha[ID].queue_per[first_arrival];
+		                    total_cha[ID].queue_per[first_arrival] = 0;
+		                    amountOfPeopleThatWillJoinToBus = 0;
+		                } else {
+		                    total_cha[ID].queue_per[first_arrival] -= amountOfAvailableSpaceInTheBus;
+		                    total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged += amountOfAvailableSpaceInTheBus;
+		                }
+
+		                if( total_cha[ID].queue_per[first_arrival] == 0 ){
+		                    first_arrival++;
+		                    if(first_arrival > Hour_Simul)
+		                        break;
+		                }
+		            }
+		        }
+		  }
             }
 
             printf("%d ", amountOfPeopleThatWillJoinToBus);
@@ -257,6 +271,10 @@ void child_funtion(int ID, int pipes[][2])
             }
 
             printf(" \n");
+        } else if( amountOfPeopleThatWillJoinToBus > 0 ) {
+            printf("%s: ", total_cha[ID].code);
+            printf("%d ", amountOfPeopleThatWillJoinToBus);
+            printf(" \n"); 
         }
 
         timeOfArriveToUniversityOfNextBus = getMinutesOfBusWithMinutesAndHours(total_ser[positionInServiceMatrixOfCurrentProcess][amountOfBusesFinishedByRoute[ID]].leaveing) + 10 + total_ser[positionInServiceMatrixOfCurrentProcess][amountOfBusesFinishedByRoute[ID]].travel_time * 2;
