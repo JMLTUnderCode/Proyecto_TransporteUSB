@@ -306,17 +306,6 @@ void child_funtion(int ID, int pipes[][2])
 			amountOfBusesFinishedByRoute[ID]++;
 		}
 
-		/*FOR(n, 0, amountOfBusesWaitingForPeopleInCurrentProcess)
-		{
-			printf("[..........] ");
-		}*/
-
-		/*for (int i = 0; i < amountOfBusesGoingToBusStationInCurrentProcess; i++)
-		{
-			print_bus(total_ser[positionInServiceMatrixOfCurrentProcess][i].progressPercentage, 0);
-
-		}*/
-
 		write(pipes[ID + 1][1], buf, 10);
 		if (minutes == -1)
 			break;

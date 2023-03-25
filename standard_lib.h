@@ -58,6 +58,8 @@ struct time_b
 //	- code: Codigo de la parada.
 //	- name: Nombre de la parada.
 //	- min_travel: Tiempo de viaje del bus.
+//  - peopleThatDidnotGetTheBus: Cantidad de personas que no lograron subir
+//  - totalPersonInRoute: Cantidad total de gente correspondiente a la ruta
 struct charge
 {
 	int empty;
@@ -65,7 +67,6 @@ struct charge
 	char code[4];
 	char name[64];
 	int min_travel;
-	int currentHour;
 	int peopleThatDidnotGetTheBus;
 	int totalPersonInRoute;
 };
@@ -76,6 +77,10 @@ struct charge
 //	- leaveing: Hora de salida del bus desde la universidad.
 //	- c_capacity: Capacidad de carga del bus.
 //  - travel_time: Tiempo que tarda el bus en cumplir su ruta
+//	- progressPercentage: Porcentaje de la ruta que el bus ha recorrido
+//	- isWaitingForPeople: Si el bus esta en la parada esperando gente o no
+//	- isReturningToUniversity: Si el bus esta camino a la parada o a la universidad
+//	- peopleCharged: Cantidad de gente que se ha montado en el bus.
 struct services
 {
 	int empty;
@@ -83,24 +88,22 @@ struct services
 	struct time_b leaveing;
 	int c_capacity;
 	int travel_time;
-	int charge_id;
-	int numberOfBusInRoute;
 	int progressPercentage;
 	int isWaitingForPeople;
 	int isReturningToUniversity;
-	int peopleLate;
-	int peopleOnTime;
 	int peopleCharged;
 };
 
+// Cantidad de buses que se han enviado por ruta
 int amountOfBusesUsedByRoute[n_routes];
 
+// Cantidad de buses que han terminado recorrido por ruta
 int amountOfBusesFinishedByRoute[n_routes];
 
-int travelTimeByBusRoute[n_routes];
-
+// Position de array de buses en matriz que controla los buses correspondiente a posicion de dicha ruta en array de rutas
 int servicePositionInMatrixByRoute[n_routes];
 
+// Position de array de rutas correspondiente a posicion de array de buses en matriz que controla los buses
 int routePositionInMatrixByService[n_routes];
 
 // Arreglo de unidimensional de estructuras de chargas. Permite
@@ -157,11 +160,14 @@ void open_files(int, char **);
 // Cuando no se ingresan los archivos o la cantidad correcta.
 void ErrorArgument(int, char **);
 
+// Funcion que convierte tiempo de un struct time_b (tiempo en horas y minutos) a tiempo solo en minutos
 int getMinutesOfBusWithMinutesAndHours(struct time_b);
 
+// Funcion que muestra bus en consola
 void print_bus(int, int);
 
+// Funcion que muestre que porcentaje de un numero es otro
 int getPercentageOfNumber(int, int);
 
+// Funcion que convierte minutos a horas
 int convertMinutesToHours(int);
-
