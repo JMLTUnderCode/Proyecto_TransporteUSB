@@ -296,6 +296,7 @@ void child_funtion(int ID, int pipes[][2]) {
 				total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[HourInefficent];
 			}
 		}
+
 		// Este if es para verificar que en una ruta hay buses activos
 		if (amountOfBusesUsedByRoute[ID] - amountOfBusesFinishedByRoute[ID] > 0) {
 			// Muestra el codigo de la ruta
@@ -323,6 +324,11 @@ void child_funtion(int ID, int pipes[][2]) {
 								amountOfPeopleThatWillJoinToBus = 0;
 							} else if (amountOfPeopleThatWillJoinToBus < 0) {
 								total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged += total_cha[ID].queue_per[first_arrival];
+
+								if( total_ser[positionInServiceMatrixOfCurrentProcess][i].leaveing.hour*60+total_ser[positionInServiceMatrixOfCurrentProcess][i].leaveing.min + 2*total_ser[positionInServiceMatrixOfCurrentProcess][i].travel_time + 10 > first_arrival*60 + 90){
+									total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[first_arrival];
+								}
+
 								total_cha[ID].queue_per[first_arrival] = 0;
 								amountOfPeopleThatWillJoinToBus = 0;
 							} else {
