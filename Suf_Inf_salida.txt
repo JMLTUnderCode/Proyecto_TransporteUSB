@@ -1,4 +1,4 @@
-CODE, People-Late, People-OnTime
+CODE  People-Late  People-OnTime
 
  BRT         0         420
  BAR        24         620

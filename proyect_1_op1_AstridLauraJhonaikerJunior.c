@@ -11,6 +11,10 @@
  * Jhonaiker Blanco 18-10784
  * Junior Lara      17-10303
  *
+ * PD: El programa escribe en un archivo de nombre "Suf_Inf_salida.txt"
+ * los resultados finales de eficiencia e ineficiencia de plan de servicios
+ * y carga dados por argumento main de entrada.
+ *
  */
 
 #include "standard_lib.h"
@@ -75,11 +79,14 @@ int main(int argc, char *argv[]) {
 
 				// Se debe terminar el proceso si el buff contiene 
 				// simbolo "-" al comienzo.
-				FILE *salida = fopen("salida.csv", "w+");
+				FILE *salida = fopen("Suf_Inf_salida.txt", "w+");
+				if(salida == NULL){
+					perror("Error: Fail open file \"Suf_Inf_salida.txt\".");
+				}
 				if (buf[0] == '-') {
-					fprintf(salida, "%s", "CODE, People-Late, People-OnTime\n");
+					fprintf(salida, "%s", "CODE  People-Late  People-OnTime\n");
 					fprintf(salida, "%s", &buf[2]);
-					printf("\nCODE  Ineficientes  Eficientes\n");
+					printf("\nCODE  People-Late  People-OnTime\n");
 					printf("%s", &buf[2]);
 					printf("\n\n");
 					fclose(salida);
