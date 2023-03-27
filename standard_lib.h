@@ -35,10 +35,10 @@
 			_x > _y ? _x : _y; })
 
 // Buffers y Constantes Macros.
-#define BUFFER_SIZE 1024        // Buffer para lectura de filas en archivo.
-#define n_routes 50		// Numero maximo de rutas en la universidad.
-#define max_hour 24             // Maximo de horas en un dia.
-#define max_bus 200             // Maximo de Buses en una ruta.
+#define BUFFER_SIZE 1024   // Buffer para lectura de filas en archivo.
+#define n_routes 50		     // Numero maximo de rutas en la universidad.
+#define max_hour 24        // Maximo de horas en un dia.
+#define max_bus 200        // Maximo de Buses en una ruta.
 
 FILE *charge_file, *services_file; // Variable para archivo de carga y servicio.
 int first_arrival = 0;          // Hora Inicial de llegada de estudiantes.
@@ -100,10 +100,6 @@ int amountOfBusesUsedByRoute[n_routes];
 
 // Cantidad de buses que han terminado recorrido por ruta.
 int amountOfBusesFinishedByRoute[n_routes];
-
-// Position de array de rutas correspondiente a posicion de array de 
-// buses en matriz que controla los buses.
-//int routePositionInMatrixByService[n_routes];
 
 // Arreglo de unidimensional de estructuras de chargas. Permite
 // indexar por ruta leida en archivo de carga. Cada indice contiene
@@ -185,5 +181,4 @@ void open_files(int, char **);
 void ErrorArgument(int, char **);
 
 /***********************************************************************************/
-
 

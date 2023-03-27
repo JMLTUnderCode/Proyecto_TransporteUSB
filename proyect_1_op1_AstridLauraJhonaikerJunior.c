@@ -75,10 +75,14 @@ int main(int argc, char *argv[]) {
 
 				// Se debe terminar el proceso si el buff contiene 
 				// simbolo "-" al comienzo.
+				FILE *salida = fopen("salida.csv", "w+");
 				if (buf[0] == '-') {
+					fprintf(salida, "%s", "CODE, People-Late, People-OnTime\n");
+					fprintf(salida, "%s", &buf[2]);
 					printf("\nCODE  Ineficientes  Eficientes\n");
 					printf("%s", &buf[2]);
 					printf("\n\n");
+					fclose(salida);
 					break;
 				} else 
 					sscanf(buf, "%d", &minutes);
@@ -139,12 +143,10 @@ void print_bus(int percentage, int direction) {
 		count = 0;
 	}
 	
-	// Direccion parada.
-	if (direction == 0) {
+	if (direction == 0) { // Direccion Parada.
 		FOR(i, 0, count)
 			printf("<");
-	// Direccion universidad.
-	} else {
+	} else {              // Direccion Universidad.
 		FOR(i, 0, count)
 			printf(">");
 	}
@@ -232,7 +234,6 @@ void child_funtion(int ID, int pipes[][2]) {
 	} else {
 		positionInServiceMatrixOfCurrentProcess = -1;
 	}
-	//int positionInServiceMatrixOfCurrentProcess = servicePositionInMatrixByRoute[ID]; // Posicion en matrix de servicios de array con buses de ruta actual.
 	int minutes = 0;                                // Tiempo actual en minutos.
 	int hours = 0;                                  // Tiempo actual en horas.
 	int timeOfArriveToUniversityOfNextBus = 0;      // Momento cuando llegara el siguiente bus.
@@ -243,6 +244,7 @@ void child_funtion(int ID, int pipes[][2]) {
 	int HourInefficent = 0;                         // Hora a la que las personas son calificadas como "ineficientes".
 	int late = 0;                                   // Cantidad de personas que llegaron tarde a la universidad.
 	int onTime = 0;                                 // Cantidad de personas que llegaron a tiempo.
+	int ToCount = first_arrival;                    // Variable para proximo conteo de colas ineficientes.
 	char buf[14 * n_routes];                        // Buffer para lectura de pipe.
 	char buf_data[64];                              // Buffer para creacion de datos por proceso.
 	
@@ -256,7 +258,10 @@ void child_funtion(int ID, int pipes[][2]) {
 			// a la universidad.
 			if(positionInServiceMatrixOfCurrentProcess != -1){
 				late = total_cha[ID].peopleThatDidnotGetTheBus;
-				onTime = (total_cha[ID].totalPersonInRoute - total_cha[ID].peopleThatDidnotGetTheBus);
+				for(int x = first_arrival; x-1 < last_arrival; x++){
+					late += total_cha[ID].queue_per[x];
+				}
+				onTime = (total_cha[ID].totalPersonInRoute - late);
 				sprintf(buf_data, "\n %s %9d %11d", total_cha[ID].code, late, onTime);
 				strcat(buf, buf_data);
 			} else {
@@ -288,58 +293,68 @@ void child_funtion(int ID, int pipes[][2]) {
 			pthread_create(&listOfPthreads[ID][amountOfBusesUsedByRoute[ID]], NULL, &showBus, (void *)&total_ser[positionInServiceMatrixOfCurrentProcess][amountOfBusesUsedByRoute[ID]]);
 			amountOfBusesUsedByRoute[ID]++;
 		}
-
-		// Pasable a funcion
-		if (((Hour_Simul - 91) % 60 == 0) && hours > 6) {
-			HourInefficent = ((Hour_Simul - 91) / 60);
-			if (total_cha[ID].queue_per[HourInefficent] > 0) {
-				total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[HourInefficent];
-			}
+		
+		// Agregado de estudiantes por hora de llegada a la parada.
+		if ( Hour_Simul % 60 == 0 ) {
+			amountOfPeopleThatWillJoinToBus += total_cha[ID].queue_per[hours];
 		}
 
-		// Este if es para verificar que en una ruta hay buses activos
+		// Se verifica que existen buses en curso.
 		if (amountOfBusesUsedByRoute[ID] - amountOfBusesFinishedByRoute[ID] > 0) {
 			// Muestra el codigo de la ruta
 			printf("%s: ", total_cha[ID].code);
 
-			updateQueue = 0;
-			if (first_arrival < 14 && hours > 5) {
-				if (60 * hours == Hour_Simul) {
-					amountOfPeopleThatWillJoinToBus += total_cha[ID].queue_per[hours];
-					updateQueue = 1;
-				}
-
-				if (first_arrival <= Hour_Simul) {
-
+			if (first_arrival-1 < last_arrival && hours > 5) {
+			
+				if (first_arrival*60 <= Hour_Simul) {
 
 					for (int i = amountOfBusesFinishedByRoute[ID]; i < amountOfBusesUsedByRoute[ID]; i++) {
 						if (total_ser[positionInServiceMatrixOfCurrentProcess][i].isWaitingForPeople == 1) {
+							
+							if(first_arrival > hours) break;
 
 							amountOfAvailableSpaceInTheBus = total_ser[positionInServiceMatrixOfCurrentProcess][i].c_capacity - total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged;
-							if (updateQueue == 0) {
+
+							if(amountOfAvailableSpaceInTheBus == 0) continue;
+							
+							// Calculo de cola total a imprimir.
+							if(amountOfAvailableSpaceInTheBus > amountOfPeopleThatWillJoinToBus){
+								total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged += amountOfPeopleThatWillJoinToBus;
+								amountOfPeopleThatWillJoinToBus = 0;
+
+							} else {
+								total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged += amountOfAvailableSpaceInTheBus;
 								amountOfPeopleThatWillJoinToBus -= amountOfAvailableSpaceInTheBus;
 							}
+							
+							// Reduccion de la cola de estudiantes.
+							if(total_cha[ID].queue_per[first_arrival] >= amountOfAvailableSpaceInTheBus){
 
-							if (amountOfPeopleThatWillJoinToBus == -amountOfAvailableSpaceInTheBus) {
-								amountOfPeopleThatWillJoinToBus = 0;
-							} else if (amountOfPeopleThatWillJoinToBus < 0) {
-								total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged += total_cha[ID].queue_per[first_arrival];
+								total_cha[ID].queue_per[first_arrival] -= amountOfAvailableSpaceInTheBus;
+								if( total_ser[positionInServiceMatrixOfCurrentProcess][i].leaveing.hour*60+total_ser[positionInServiceMatrixOfCurrentProcess][i].leaveing.min + 2*total_cha[ID].min_travel + 10 > first_arrival*60 + 90){
+									total_cha[ID].peopleThatDidnotGetTheBus += amountOfAvailableSpaceInTheBus;
+								}
+								amountOfAvailableSpaceInTheBus = 0;
 
-								if( total_ser[positionInServiceMatrixOfCurrentProcess][i].leaveing.hour*60+total_ser[positionInServiceMatrixOfCurrentProcess][i].leaveing.min + 2*total_ser[positionInServiceMatrixOfCurrentProcess][i].travel_time + 10 > first_arrival*60 + 90){
-									total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[first_arrival];
+							} else {
+
+								while( total_cha[ID].queue_per[first_arrival] < amountOfAvailableSpaceInTheBus && first_arrival <= hours){
+								
+									if( total_ser[positionInServiceMatrixOfCurrentProcess][i].leaveing.hour*60+total_ser[positionInServiceMatrixOfCurrentProcess][i].leaveing.min + 2*total_cha[ID].min_travel + 10 > first_arrival*60 + 90){
+										total_cha[ID].peopleThatDidnotGetTheBus += total_cha[ID].queue_per[first_arrival];
+									}
+									amountOfAvailableSpaceInTheBus -= total_cha[ID].queue_per[first_arrival];
+									total_cha[ID].queue_per[first_arrival] = 0;
+									first_arrival++;
 								}
 
-								total_cha[ID].queue_per[first_arrival] = 0;
-								amountOfPeopleThatWillJoinToBus = 0;
-							} else {
-								total_cha[ID].queue_per[first_arrival] -= amountOfAvailableSpaceInTheBus;
-								total_ser[positionInServiceMatrixOfCurrentProcess][i].peopleCharged += amountOfAvailableSpaceInTheBus;
-							}
-
-							if (total_cha[ID].queue_per[first_arrival] == 0) {
-								first_arrival++;
-								if (first_arrival > Hour_Simul)
-									break;
+								if(amountOfAvailableSpaceInTheBus > 0 && first_arrival <= hours){
+									total_cha[ID].queue_per[first_arrival] -= amountOfAvailableSpaceInTheBus;
+									if( total_ser[positionInServiceMatrixOfCurrentProcess][i].leaveing.hour*60+total_ser[positionInServiceMatrixOfCurrentProcess][i].leaveing.min + 2*total_cha[ID].min_travel + 10 > first_arrival*60 + 90){
+										total_cha[ID].peopleThatDidnotGetTheBus += amountOfAvailableSpaceInTheBus;
+									}
+									amountOfAvailableSpaceInTheBus = 0;
+								}
 							}
 						}
 					}
